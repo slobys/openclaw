@@ -96,6 +96,7 @@ remove_completion_lines() {
   sed -i \
     -e '/\.openclaw\/completions\/openclaw\.bash/d' \
     -e '/openclaw\.bash["'\'' ]*$/d' \
+    -e '/# OpenClaw Completion/d' \
     "$file" || true
 
   if [[ -f "$file" ]] && [[ -z "$(tr -d '[:space:]' < "$file")" ]]; then
@@ -153,6 +154,23 @@ ensure_home_dirs() {
     run_as_target "PATH='$SAFE_SYSTEM_PATH' npm prefix -g || true"
   else
     warn "当前环境还没有 npm，后续由 OpenClaw 官方安装器处理。"
+  fi
+}
+
+ensure_gateway_background() {
+  log "确保 OpenClaw Gateway 以后台服务方式运行"
+
+  run_as_target "export PATH='$NPM_GLOBAL_DIR/bin:$LOCAL_BIN_DIR:$SAFE_SYSTEM_PATH'; openclaw gateway start >/dev/null 2>&1 || true"
+
+  if ! run_as_target "export PATH='$NPM_GLOBAL_DIR/bin:$LOCAL_BIN_DIR:$SAFE_SYSTEM_PATH'; openclaw gateway status --require-rpc >/dev/null 2>&1"; then
+    warn "后台服务首次探测未通过，尝试重启 Gateway 服务"
+    run_as_target "export PATH='$NPM_GLOBAL_DIR/bin:$LOCAL_BIN_DIR:$SAFE_SYSTEM_PATH'; openclaw gateway restart >/dev/null 2>&1 || true"
+  fi
+
+  if run_as_target "export PATH='$NPM_GLOBAL_DIR/bin:$LOCAL_BIN_DIR:$SAFE_SYSTEM_PATH'; openclaw gateway status --require-rpc >/dev/null 2>&1"; then
+    log "后台服务已正常运行"
+  else
+    warn "Gateway 已安装为服务，但暂未通过 RPC 探测。你可以稍后手动执行：openclaw gateway status"
   fi
 }
 
@@ -234,6 +252,8 @@ install_openclaw() {
   log "执行 OpenClaw 初始化并安装网关服务"
   run_as_target "export PATH='$NPM_GLOBAL_DIR/bin:$LOCAL_BIN_DIR:$SAFE_SYSTEM_PATH'; openclaw onboard --install-daemon"
 
+  ensure_gateway_background
+
   log "安装完成，执行基础检查"
   run_as_target "export PATH='$NPM_GLOBAL_DIR/bin:$LOCAL_BIN_DIR:$SAFE_SYSTEM_PATH'; openclaw doctor || true"
   run_as_target "export PATH='$NPM_GLOBAL_DIR/bin:$LOCAL_BIN_DIR:$SAFE_SYSTEM_PATH'; openclaw gateway status || true"
@@ -248,6 +268,10 @@ OpenClaw 状态目录: $OPENCLAW_DIR
 
 以后无论你登录后落在哪个目录，直接运行：
   bash ~/openclaw-fnos-menu.sh
+
+后台服务常用命令：
+  openclaw gateway status
+  openclaw gateway restart
 ============================================
 MSG
 
@@ -297,7 +321,7 @@ cleanup_openclaw_in_home() {
   remove_path_block "$home/.profile"
   remove_path_block "$home/.bashrc"
 
-  rm -f     "$home/.bash_profile"     "$home/.bashrc"     "$home/.bash_history"     2>/dev/null || true
+  rm -f "$home/.bash_profile" "$home/.bashrc" "$home/.bash_history" 2>/dev/null || true
 
   cleanup_empty_dir "$home/.local/bin"
   cleanup_empty_tree "$home/.local/share" "$home/.local"
@@ -345,11 +369,11 @@ uninstall_openclaw() {
 已清理：
 - ~/.openclaw 及其衍生目录
 - ~/.npm-global / ~/.npm / ~/.npmrc 中的 prefix
-- ~/.bash_profile / ~/.bashrc / ~/.bash_history
-- ~/.profile / ~/.bash_profile / ~/.bashrc 里的 PATH 和补全残留
+- ~/.bash_profile / ~/.profile / ~/.bashrc 里的 PATH 和补全残留
 - ~/.config/systemd/user 下的 openclaw-gateway 服务文件
 - ~/.config/openclaw / ~/.cache/openclaw / ~/.local/share/openclaw
 - /tmp/openclaw* 临时目录和日志
+- ~/.bash_profile / ~/.bashrc / ~/.bash_history
 
 未清理：
 - Node / npm / pnpm / bun 本体
@@ -366,7 +390,7 @@ $SCRIPT_NAME
 当前用户: $TARGET_USER
 真实家目录: $TARGET_HOME
 ============================================
-1) 安装 OpenClaw
+1) 安装 OpenClaw（自动后台运行）
 2) 彻底卸载并恢复到安装前状态
 0) 退出
 MENU
