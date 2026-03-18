@@ -9,7 +9,7 @@ cd ~
 ```
 ### 拉取项目
 ```
-git clone https://github.com/slobys/xiaoai.git .
+git clone https://github.com/slobys/openclaw.git .
 ```
 ### 添加权限并执行脚本
 ```bash
