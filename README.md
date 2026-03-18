@@ -6,11 +6,11 @@
   
 ### 进入home目录
 ```bash
-cd ~
+cd /home/naiyou
 ```
 ### 拉取项目
 ```
-git clone https://github.com/slobys/openclaw.git .
+curl -L https://raw.githubusercontent.com/slobys/openclaw/main/openclaw-fnos-menu.sh -o openclaw-fnos-menu.sh
 ```
 ### 添加权限并执行脚本
 ```bash
