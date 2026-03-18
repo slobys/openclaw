@@ -1,7 +1,8 @@
-# 一键部署OpenClaw
+# 飞牛NAS一键部署OpenClaw
 
 ## 项目主要实现功能
-* 飞牛NAS一键部署OpenClaw
+* 一键部署
+* 一键卸载
   
 ### 进入home目录
 ```bash
